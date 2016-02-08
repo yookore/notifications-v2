@@ -2,6 +2,6 @@
 applications:
   - name: mygradle
     instances: 1
-    memory: 512M
+    memory: 8G
     path: build/libs/ns.jar
 

@@ -10,6 +10,7 @@ buildscript {
 apply plugin: 'java'
 apply plugin: 'idea'
 apply plugin: 'spring-boot'
+apply plugin: 'application'
 
 
 repositories {
@@ -25,6 +26,14 @@ dependencies {
     compile("org.springframework.boot:spring-boot-starter-amqp")
     compile("com.datastax.cassandra:cassandra-driver-mapping:2.1.9")
     compile("com.datastax.cassandra:cassandra-driver-core:2.1.9")
+    compile ("com.google.code.gson:gson:2.5")
+    compile ("com.google.gcm:gcm-server:1.0.0")
+    compile ("redis.clients:jedis:2.8.0")
+    compile ("org.mongodb.morphia:morphia:1.1.0")
+    compile 'org.mongodb:mongo-java-driver:3.2.1'
+    compile 'com.datastax.cassandra:cassandra-driver-core:3.0.0'
+    compile 'com.datastax.cassandra:cassandra-driver-mapping:3.0.0'
+    compile 'org.codehaus.jackson:jackson-mapper-asl:1.9.13'
 
     testCompile("junit:junit")
 }
