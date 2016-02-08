@@ -1,13 +1,14 @@
-package com.yookos.ns.domain;
+package com.yookos.ns.models;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.yookos.ns.domain.Preference;
 
 /**
  * Created by jome on 2016/01/22.
  */
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class Actor {
+public class YookoreUser {
     private String type;
     private String userId;
     private String username;
@@ -74,7 +75,7 @@ public class Actor {
 
     @Override
     public String toString() {
-        return "Actor{" +
+        return "YookoreUser{" +
                 "type='" + type + '\'' +
                 ", userId='" + userId + '\'' +
                 ", username='" + username + '\'' +

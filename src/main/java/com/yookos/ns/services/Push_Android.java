@@ -4,17 +4,10 @@ package com.yookos.ns.services;
  * Created by jome on 2016/02/08.
  */
 
-import com.google.android.gcm.server.Message;
-import com.google.android.gcm.server.Result;
-import com.google.android.gcm.server.Sender;
-import com.yookos.ns.domain.YookoreNotificationEvent;
-
-import java.io.IOException;
-
 public class Push_Android {
 //    String googleServerKey="AIzaSyBTZyyJ8wpRc3Hhd21C0wMnVCetGzwFah8";
 //    String googleSenderId="54750361051";
-//    public Result sendAndroidPushNotification(YookoreNotificationEvent notification){
+//    public Result sendAndroidPushNotification(NotificationEvent notification){
 //        try {
 //            Message message = buildPushMessage(notification);
 //            Sender sender = new Sender(googleServerKey);
@@ -43,8 +36,7 @@ public class Push_Android {
 //        return null;
 //    }
 //
-//    private static Message buildPushMessage(YookoreNotificationEvent yookoreNotification) throws IOException {
-//        if (yookoreNotification.getYookoreNotificationType().equals(YookoreNotificationType.PUSH_ANDROID)) {
+//    private static Message buildPushMessage(NotificationEvent yookoreNotification) throws IOException {
 //            Message.Builder builder = new Message.Builder();
 //            builder.addData("type", yookoreNotification.getAction().name());
 //            builder.addData("actor", yookoreNotification.getActorUser().getUserId());
@@ -52,7 +44,6 @@ public class Push_Android {
 //            builder.addData("fullNames", yookoreNotification.getActorUser().getFullNames());
 //            addExtraInfo(yookoreNotification, builder);
 //            return builder.build();
-//        }
 //        return null;
 //    }
 }

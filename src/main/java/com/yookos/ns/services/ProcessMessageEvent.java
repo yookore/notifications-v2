@@ -1,8 +1,6 @@
 package com.yookos.ns.services;
 
-import com.google.gson.Gson;
-import com.yookos.ns.domain.YookoreNotification;
-import com.yookos.ns.domain.YookoreNotificationEvent;
+import com.yookos.ns.models.NotificationEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,17 +32,8 @@ public class ProcessMessageEvent {
 
     Logger log = LoggerFactory.getLogger(this.getClass());
 
-    public void processBlogPostNotifications(String notification) {
-        Gson gson = new Gson();
-        try {
-            YookoreNotification ns = gson.fromJson(notification, YookoreNotification.class);
-            log.info(ns.toString());
-        } catch (Exception exception) {
-            log.error(exception.getMessage());
-        }
-    }
 
-    public void processNotificationEvent(YookoreNotificationEvent event) {
+    public void processNotificationEvent(NotificationEvent event) {
 
         //Determine the action so as to decide the course of messaging actions to take
         String action = event.getAction();
@@ -76,7 +65,7 @@ public class ProcessMessageEvent {
 
 
 
-    public void processPclNotificationEvent(YookoreNotificationEvent event) {
+    public void processPclNotificationEvent(NotificationEvent event) {
         log.info("processing pcl event message: {}", event);
         serviceUtils.preparePushPCLMessages(event);
     }

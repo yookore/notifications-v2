@@ -8,7 +8,11 @@ import com.mongodb.BasicDBObject;
 import com.mongodb.MongoClient;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
-import com.yookos.ns.domain.*;
+import com.yookos.ns.domain.Preference;
+import com.yookos.ns.domain.RedisUser;
+import com.yookos.ns.domain.YookoreNotificationItem;
+import com.yookos.ns.models.NotificationEvent;
+import com.yookos.ns.models.YookoreUser;
 import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,7 +53,7 @@ public class ServiceUtils {
     @Autowired
     Gson gson;
 
-    public void preparePushMessages(YookoreNotificationEvent event) {
+    public void preparePushMessages(NotificationEvent event) {
         String url = (String) event.getExtraInfo().get("contentUrl");
         String[] split = url.split("/");
         logger.info("Object id: {}", split[4]);
@@ -58,74 +62,55 @@ public class ServiceUtils {
         Preference preference = new Preference();
         preference.setPush(true);
         event.getActor().setPreference(preference);
-        logger.info("Notification Event: {}", event);
-        List<Actor> relatedUsers = getRelatedUsers(event.getActor());
-//        logger.info("Related users:{}", relatedUsers.toString());
-        for (Actor targetUser : relatedUsers) {
-            saveAndPushToQueue(event, targetUser);
+        List<YookoreUser> relatedUsers = getRelatedUsers(event.getActor());
+        for (YookoreUser recipient : relatedUsers) {
+            Preference prefs = getPreferencesForUser(recipient.getUsername());
+            recipient.setPreference(prefs);
+            event.setRecipient(recipient);
+            saveAndPushToQueue(event);
         }
 
     }
 
-    private void saveAndPushToQueue(YookoreNotificationEvent event, Actor targetUser) {
-        Map<String, Object> data = new HashMap<>();
-        //Lets save the data first...
-        YookoreNotificationItem notificationItem = new YookoreNotificationItem();
-        notificationItem.setTimesent(Calendar.getInstance().getTime());
-        notificationItem.setNotification_id(UUID.randomUUID());
-        notificationItem.setContent_type("notification");
+    private Preference getPreferencesForUser(String username) {
+        Preference preference = new Preference();
+        preference.setPush(true); //for now, let everyone get a push notification. We will deal with blocked users later
+        //TODO: Insert code here to get the actual preferences for the user.
+        return preference;
+    }
 
-        notificationItem.setRead(false);
-        notificationItem.setTarget_user_id(UUID.fromString(targetUser.getUserId()));
-        notificationItem.setNotification_type(event.getAction());
-
-        data.put("notificationType", null);
-        data.put("actor", event.getActor().getUserId());
-        if (event.getActor().getFullNames().trim().length() > 0) {
-            data.put("fullNames", event.getActor().getFullNames());
-        }else{
-            data.put("fullNames", event.getActor().getFirstName() + " " + event.getActor().getLastName());
-        }
-        data.put("type", event.getAction());
-        String payload = gson.toJson(event);
-        data.put("payload", payload);
-
-        String dataString = gson.toJson(data);
-        notificationItem.setContent(dataString);
-        try{
-//            logger.info("Ready for saving: {}", notificationItem);
+    private void saveAndPushToQueue(NotificationEvent event) {
+        YookoreNotificationItem notificationItem = getYookoreNotificationItem(event);
+        try {
             mapper.save(notificationItem);
 
             sendToPushQueue(event);
 
-        }catch (Exception e){
+        } catch (Exception e) {
             logger.error(e.getMessage());
         }
 
     }
 
-    private void sendToPushQueue(YookoreNotificationEvent event) {
+    private void sendToPushQueue(NotificationEvent event) {
         //TODO:
-        logger.info(rabbitTemplate.getMessageConverter().toString());
-        String payload = gson.toJson(event);
         rabbitTemplate.convertAndSend("myexchange", "myqueue", event);
-
     }
 
-    private List<Actor> getRelatedUsers(Actor actor) {
-        return getUsers(actor);
+    private List<YookoreUser> getRelatedUsers(YookoreUser yookoreUser) {
+        return getUsers(yookoreUser);
     }
 
-    private List<Actor> getUsers(Actor actor) {
-        List<Actor> users = new ArrayList<>();
+    private List<YookoreUser> getUsers(YookoreUser yookoreUser) {
+        List<YookoreUser> users = new ArrayList<>();
         MongoCollection<Document> yookoreDb = client.getDatabase("yookore").getCollection("aes_relationships");
 
 
-        FindIterable<Document> relatedusers = yookoreDb.find(new BasicDBObject("relateduser", actor.getUsername()));
+        FindIterable<Document> relatedusers = yookoreDb.find(new BasicDBObject("relateduser", yookoreUser.getUsername()));
 
         for (Document relateduser : relatedusers) {
             String username = relateduser.getString("user");
-            Actor recipient = new Actor();
+            YookoreUser recipient = new YookoreUser();
 
             String actorString = jedisCluster.get(CACHE_PREFIX + CACHE_DOMAIN_PROFILE_PREFIX + username);
 
@@ -142,32 +127,59 @@ public class ServiceUtils {
                 recipient.setPreference(preference);
                 users.add(recipient);
             } else {
-                logger.info("No actor was found... Will retrieve data from the user profile service");
+                logger.info("No yookoreUser was found... Will retrieve data from the user profile service");
             }
 
         }
         return users;
     }
 
-    public void preparePushPCLMessages(YookoreNotificationEvent event) {
-        String url = (String) event.getExtraInfo().get("contentUrl");
-        String[] split = url.split("/");
-        logger.info("Object id: {}", split[4]);
-        event.getExtraInfo().put("objectid", split[4]);
-
-        Preference preference = new Preference();
-        preference.setPush(true);
-        event.getActor().setPreference(preference);
-        logger.info("Notification Event: {}", event);
-        List<Actor> relatedUsers = getRelatedUsers(event.getActor());
-//        logger.info("Related users:{}", relatedUsers.toString());
-        for (Actor targetUser : relatedUsers) {
-            saveAndPushToPCLQueue(event, targetUser);
+    public void preparePushPCLMessages(NotificationEvent event) {
+        YookoreNotificationItem notificationItem = getYookoreNotificationItem(event);
+        try {
+            mapper.save(notificationItem);
+            sendToPCLPushQueue(event);
+        } catch (Exception e) {
+            logger.error(e.getMessage());
         }
 
     }
 
-    private void saveAndPushToPCLQueue(YookoreNotificationEvent event, Actor targetUser) {
+    private YookoreNotificationItem getYookoreNotificationItem(NotificationEvent event) {
+        Map<String, Object> data = new HashMap<>();
+        //Lets save the data first...
+        YookoreNotificationItem notificationItem = new YookoreNotificationItem();
+        notificationItem.setTimesent(Calendar.getInstance().getTime());
+        notificationItem.setNotification_id(UUID.randomUUID());
+        notificationItem.setContent_type("notification");
+
+        notificationItem.setRead(false);
+        notificationItem.setTarget_user_id(UUID.fromString(event.getRecipient().getUserId()));
+        notificationItem.setNotification_type(event.getAction());
+
+        data.put("notificationType", null);
+        data.put("actor", event.getActor().getUserId());
+        if (event.getActor().getFullNames().trim().length() > 0) {
+            data.put("fullNames", event.getActor().getFullNames());
+        } else {
+            data.put("fullNames", event.getActor().getFirstName() + " " + event.getActor().getLastName());
+        }
+        data.put("type", event.getAction());
+        String payload = gson.toJson(event);
+        data.put("payload", payload);
+
+        String dataString = gson.toJson(data);
+        notificationItem.setContent(dataString);
+        logger.info("Ready for saving: {}", notificationItem);
+
+        return notificationItem;
+    }
+
+    private void sendToPCLPushQueue(NotificationEvent event) {
+
+    }
+
+    private void saveAndPushToPCLQueue(NotificationEvent event, YookoreUser targetUser) {
         Map<String, Object> data = new HashMap<>();
         //Lets save the data first...
         YookoreNotificationItem notificationItem = new YookoreNotificationItem();
@@ -180,7 +192,11 @@ public class ServiceUtils {
         notificationItem.setNotification_type(event.getAction());
 
         data.put("actor", event.getActor().getUserId());
-        data.put("fullNames", event.getActor().getFullNames());
+        if (event.getActor().getFullNames().trim().length() > 0) {
+            data.put("fullNames", event.getActor().getFullNames());
+        } else {
+            data.put("fullNames", event.getActor().getFirstName() + " " + event.getActor().getLastName());
+        }
         data.put("type", event.getAction());
         String payload = gson.toJson(event);
         data.put("payload", payload);

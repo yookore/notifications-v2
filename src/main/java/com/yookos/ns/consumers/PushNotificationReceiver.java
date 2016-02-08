@@ -2,8 +2,7 @@ package com.yookos.ns.consumers;
 
 import com.google.gson.Gson;
 import com.rabbitmq.client.Channel;
-import com.yookos.ns.domain.YookoreNotificationEvent;
-import com.yookos.ns.domain.YookoreNotificationItem;
+import com.yookos.ns.models.NotificationEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.Message;
@@ -23,7 +22,7 @@ public class PushNotificationReceiver implements ChannelAwareMessageListener {
     public void onMessage(Message message, Channel channel) throws Exception {
         String msg = new String(message.getBody());
         log.info("Incoming message: {}", msg);
-        YookoreNotificationEvent item = gson.fromJson(msg, YookoreNotificationEvent.class);
+        NotificationEvent item = gson.fromJson(msg, NotificationEvent.class);
         log.info(item.toString());
     }
 }
