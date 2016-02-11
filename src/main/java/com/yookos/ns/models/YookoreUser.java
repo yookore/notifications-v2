@@ -42,7 +42,12 @@ public class YookoreUser {
     }
 
     public String getFullNames() {
-        return fullNames;
+        if(fullNames.trim().length() == 0){
+            String fullname =firstName + " " + lastName;
+            return fullname.trim();
+        }else{
+            return fullNames;
+        }
     }
 
     public void setFullNames(String fullNames) {

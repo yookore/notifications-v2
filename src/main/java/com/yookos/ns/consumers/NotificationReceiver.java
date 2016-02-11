@@ -40,7 +40,7 @@ public class NotificationReceiver implements ChannelAwareMessageListener {
                 processMessage.processNotificationEvent(event);
             }
 
-            Thread.sleep(60000L);
+            Thread.sleep(5000L);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }

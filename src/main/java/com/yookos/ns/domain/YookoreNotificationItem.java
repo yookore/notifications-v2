@@ -10,7 +10,7 @@ import java.util.UUID;
  * Created by jome on 2016/02/04.
  */
 
-@Table(keyspace = "notifications", name = "notifications_test")
+@Table(keyspace = "notifications", name = "notifications")
 public class  YookoreNotificationItem {
     @PartitionKey(value = 0)
     private UUID target_user_id;

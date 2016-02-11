@@ -10,6 +10,7 @@ public class RedisUser {
     private String lastname;
     private String fullname;
     private String avatarurl;
+    private String email;
 
     public String getUserid() {
         return userid;
@@ -57,5 +58,25 @@ public class RedisUser {
 
     public void setAvatarurl(String avatarurl) {
         this.avatarurl = avatarurl;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    @Override
+    public String toString() {
+        return "RedisUser{" +
+                "userid='" + userid + '\'' +
+                ", username='" + username + '\'' +
+                ", firstname='" + firstname + '\'' +
+                ", lastname='" + lastname + '\'' +
+                ", fullname='" + fullname + '\'' +
+                ", avatarurl='" + avatarurl + '\'' +
+                '}';
     }
 }
