@@ -1,5 +1,6 @@
 package com.yookos.ns.models;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -9,6 +10,7 @@ public class NotificationEvent {
     private YookoreUser actor; //The originator of the event
     private YookoreUser recipient;
     private String action;
+    private List<TargetUser> targetUsers;
     private Map<String, Object> extraInfo;
 
     public YookoreUser getActor() {
@@ -39,6 +41,14 @@ public class NotificationEvent {
         return extraInfo;
     }
 
+    public List<TargetUser> getTargetUsers() {
+        return targetUsers;
+    }
+
+    public void setTargetUsers(List<TargetUser> targetUsers) {
+        this.targetUsers = targetUsers;
+    }
+
     public void setExtraInfo(Map<String, Object> extraInfo) {
         this.extraInfo = extraInfo;
     }
@@ -49,6 +59,7 @@ public class NotificationEvent {
                 "actor=" + actor +
                 ", recipient=" + recipient +
                 ", action='" + action + '\'' +
+                ", targetUsers=" + targetUsers +
                 ", extraInfo=" + extraInfo +
                 '}';
     }

@@ -79,12 +79,28 @@ public class ServiceUtils {
         Preference preference = new Preference();
         preference.setPush(true);
         event.getActor().setPreference(preference);
-        List<YookoreUser> relatedUsers = getRelatedUsers(event.getActor());
-        for (YookoreUser recipient : relatedUsers) {
+
+        if (event.getAction().equals("COMMENT_NOTIFICATION")) {
+            //We are only sending to those in the target list of users
+            logger.info("Processing comment notifications");
+            String parentObjectType = event.getTargetUsers().get(0).getObjectType();
+            String parentContentUrl = event.getTargetUsers().get(0).getContentUrl();
+            event.getExtraInfo().put("parentObjectType", parentObjectType);
+            event.getExtraInfo().put("parentContentUrl", parentContentUrl);
+            YookoreUser recipient = getRecipient(event.getTargetUsers().get(0).getUsername());
             Preference prefs = getPreferencesForUser(recipient.getUsername());
             recipient.setPreference(prefs);
             event.setRecipient(recipient);
             saveAndPushToQueue(event);
+
+        } else {
+            List<YookoreUser> relatedUsers = getRelatedUsers(event.getActor());
+            for (YookoreUser recipient : relatedUsers) {
+                Preference prefs = getPreferencesForUser(recipient.getUsername());
+                recipient.setPreference(prefs);
+                event.setRecipient(recipient);
+                saveAndPushToQueue(event);
+            }
         }
 
     }
@@ -166,10 +182,6 @@ public class ServiceUtils {
 
     }
 
-    private void sendToPushQueue(NotificationEvent event) {
-        //TODO:
-        rabbitTemplate.convertAndSend("myexchange", "myqueue", event);
-    }
 
     private List<YookoreUser> getRelatedUsers(YookoreUser yookoreUser) {
         return getUsers(yookoreUser, false);
@@ -193,12 +205,44 @@ public class ServiceUtils {
 
         for (Document relateduser : relatedusers) {
             String username = relateduser.getString("user");
-            YookoreUser recipient = new YookoreUser();
+            try {
+                YookoreUser recipient = getRecipient(username);
 
-            String actorString = jedisCluster.get(CACHE_PREFIX + CACHE_DOMAIN_PROFILE_PREFIX + username);
+                if (recipient != null) {
+                    users.add(recipient);
+                }
 
-            if (actorString != null) {
-                RedisUser redisRecipient = gson.fromJson(actorString, RedisUser.class);
+            } catch (HttpClientErrorException hcee) {
+                logger.error(hcee.toString());
+            }
+        }
+        logger.info("Size of recipients list: {}", users.size());
+        return users;
+    }
+
+    private YookoreUser getRecipient(String username) {
+        String actorString = jedisCluster.get(CACHE_PREFIX + CACHE_DOMAIN_PROFILE_PREFIX + username);
+        YookoreUser recipient = null;
+        if (actorString != null) {
+            RedisUser redisRecipient = gson.fromJson(actorString, RedisUser.class);
+            recipient = new YookoreUser();
+            recipient.setUsername(redisRecipient.getUsername());
+            recipient.setFirstName(redisRecipient.getFirstname());
+            recipient.setLastName(redisRecipient.getLastname());
+            recipient.setType("USER");
+            recipient.setUserId(redisRecipient.getUserid());
+            recipient.setFullNames(redisRecipient.getFirstname() + " " + redisRecipient.getLastname());
+            Preference preference = new Preference();
+            preference.setPush(true);
+            recipient.setPreference(preference);
+            logger.info("Pulled user from redis: {}", redisRecipient);
+        } else {
+
+            String request = UPM_URL + username;
+            RedisUser redisRecipient = restTemplate.getForObject(request, RedisUser.class);
+
+            if (redisRecipient != null) {
+                recipient = new YookoreUser();
                 recipient.setUsername(redisRecipient.getUsername());
                 recipient.setFirstName(redisRecipient.getFirstname());
                 recipient.setLastName(redisRecipient.getLastname());
@@ -208,38 +252,12 @@ public class ServiceUtils {
                 Preference preference = new Preference();
                 preference.setPush(true);
                 recipient.setPreference(preference);
-                users.add(recipient);
-            } else {
-                logger.info("No yookoreUser was found... Will retrieve data from the user profile service");
-
-                try {
-                    String request = UPM_URL + username;
-                    logger.info("Request: {}", request);
-                    RedisUser redisRecipient = restTemplate.getForObject(request, RedisUser.class);
-
-                    if (redisRecipient != null) {
-                        recipient.setUsername(redisRecipient.getUsername());
-                        recipient.setFirstName(redisRecipient.getFirstname());
-                        recipient.setLastName(redisRecipient.getLastname());
-                        recipient.setType("USER");
-                        recipient.setUserId(redisRecipient.getUserid());
-                        recipient.setFullNames(redisRecipient.getFirstname() + " " + redisRecipient.getLastname());
-                        Preference preference = new Preference();
-                        preference.setPush(true);
-                        recipient.setPreference(preference);
-                        String cachedUserKey = CACHE_PREFIX + CACHE_DOMAIN_PROFILE_PREFIX + username;
-                        jedisCluster.set(cachedUserKey, gson.toJson(recipient));
-                        users.add(recipient);
-                    }
-                    logger.info("Pulled user from upm: {}", redisRecipient);
-
-                } catch (HttpClientErrorException hcee) {
-                    logger.error(hcee.toString());
-                }
+                String cachedUserKey = CACHE_PREFIX + CACHE_DOMAIN_PROFILE_PREFIX + username;
+                jedisCluster.set(cachedUserKey, gson.toJson(recipient));
+                logger.info("Pulled user from upm: {}", redisRecipient);
             }
         }
-        logger.info("Size of recipients list: {}", users.size());
-        return users;
+        return recipient;
     }
 
 
@@ -295,10 +313,13 @@ public class ServiceUtils {
         rabbitTemplate.convertAndSend("myexchange", "pcl_queue", event);
     }
 
+    private void sendToPushQueue(NotificationEvent event) {
+        //TODO:
+        rabbitTemplate.convertAndSend("myexchange", "myqueue", event);
+    }
+
     private void saveAndPushToQueue(NotificationEvent event) {
         try {
-            if (event.getRecipient().getUsername().equals("jomski2009")
-                    || event.getRecipient().getUsername().equals("phumi1")) {
                 processContentUrl(event);
                 YookoreNotificationItem notificationItem = getYookoreNotificationItem(event);
                 if (notificationItem != null) {
@@ -306,7 +327,6 @@ public class ServiceUtils {
                     mapper.save(notificationItem);
                     sendToPushQueue(event);
                 }
-            }
         } catch (Exception e) {
             logger.error(e.getMessage());
         }
@@ -315,8 +335,6 @@ public class ServiceUtils {
 
     private void saveAndPushToPCLQueue(NotificationEvent event) {
         try {
-            if (event.getRecipient().getUsername().equals("jomski2009")
-                    || event.getRecipient().getUsername().equals("phumi1")) {
             processContentUrl(event);
             logger.info("Content URL: {}", event.getExtraInfo().get("ContentUrl"));
             YookoreNotificationItem notificationItem = getYookoreNotificationItem(event);
@@ -324,8 +342,6 @@ public class ServiceUtils {
                 mapper.save(notificationItem);
                 sendToPCLPushQueue(event);
             }
-            }
-
         } catch (Exception e) {
             logger.error(e.getMessage());
         }

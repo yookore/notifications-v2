@@ -1,7 +1,7 @@
 ---
 applications:
-  - name: mygradle
-    instances: 1
+  - name: nsproducer
+    instances: 2
     memory: 8G
     path: build/libs/ns.jar
 

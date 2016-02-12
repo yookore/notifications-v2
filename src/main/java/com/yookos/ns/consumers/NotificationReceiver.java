@@ -38,10 +38,10 @@ public class NotificationReceiver implements ChannelAwareMessageListener {
                 processMessage.processPclNotificationEvent(event);
             } else {
                 processMessage.processNotificationEvent(event);
+                log.info("Processing other notification events");
             }
 
-            Thread.sleep(5000L);
-        } catch (InterruptedException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
