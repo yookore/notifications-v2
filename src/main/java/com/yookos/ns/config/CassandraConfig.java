@@ -6,6 +6,7 @@ import com.datastax.driver.core.PlainTextAuthProvider;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.mapping.Mapper;
 import com.datastax.driver.mapping.MappingManager;
+import com.yookos.ns.domain.NotificationUser;
 import com.yookos.ns.domain.YookoreNotificationItem;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -32,5 +33,9 @@ public class CassandraConfig {
     @Bean
     Mapper<YookoreNotificationItem> yookoreNotificationItemMapper(){
         return new MappingManager(session()).mapper(YookoreNotificationItem.class);
+    }
+
+    @Bean Mapper<NotificationUser> notificationUserMapper(){
+        return new MappingManager(session()).mapper(NotificationUser.class);
     }
 }

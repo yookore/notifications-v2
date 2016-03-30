@@ -3,5 +3,6 @@ applications:
   - name: nsproducer
     instances: 2
     memory: 8G
+    no-route: true
     path: build/libs/ns.jar
 
