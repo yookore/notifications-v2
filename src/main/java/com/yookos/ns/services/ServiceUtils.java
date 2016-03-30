@@ -8,6 +8,7 @@ import com.mongodb.BasicDBObject;
 import com.mongodb.MongoClient;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
+import com.yookos.ns.consumers.NotificationReceiver;
 import com.yookos.ns.domain.NotificationUser;
 import com.yookos.ns.domain.Preference;
 import com.yookos.ns.domain.RedisUser;
@@ -78,15 +79,15 @@ public class ServiceUtils {
     Gson gson;
 
     public void preparePushMessages(NotificationEvent event) {
-        getObjectId(event);
 
         Preference preference = new Preference();
         preference.setPush(true);
         event.getActor().setPreference(preference);
 
-        if (event.getAction().equals("COMMENT_NOTIFICATION")) {
+        if (event.getAction().equals(ProcessMessageEvent.COMMENT_NOTIFICATION)) {
+            getObjectId(event);
             //We are only sending to those in the target list of users
-            logger.info("Processing comment notifications");
+            logger.info("Processing comment or messaging notifications, {}", event.toString());
             String parentObjectType = event.getTargetUsers().get(0).getObjectType();
             String parentContentUrl = event.getTargetUsers().get(0).getContentUrl();
             event.getExtraInfo().put("parentObjectType", parentObjectType);
@@ -96,8 +97,12 @@ public class ServiceUtils {
             recipient.setPreference(prefs);
             event.setRecipient(recipient);
             saveAndPushToQueue(event);
-
+        } else if (event.getAction().equals(ProcessMessageEvent.MESSAGE_SENT)) {
+            //We are not processing anything. Push as is...
+            logger.info("Pushing message events");
+            saveAndPushToQueue(event);
         } else {
+            getObjectId(event);
             List<YookoreUser> relatedUsers = getRelatedUsers(event.getActor());
             for (YookoreUser recipient : relatedUsers) {
                 if (actorInBlockedList(recipient, event.getActor())) {
@@ -341,18 +346,23 @@ public class ServiceUtils {
 
     private void sendToPushQueue(NotificationEvent event) {
         //TODO:
+        logger.info("Pushing message event");
         rabbitTemplate.convertAndSend("myexchange", "myqueue", event);
     }
 
     private void saveAndPushToQueue(NotificationEvent event) {
         try {
-            processContentUrl(event);
-            YookoreNotificationItem notificationItem = getYookoreNotificationItem(event);
-            if (notificationItem != null) {
+            //We will not be doing any processing on direct message events
+            if (!Objects.equals(event.getAction(), ProcessMessageEvent.MESSAGE_SENT)) {
+                processContentUrl(event);
+                YookoreNotificationItem notificationItem = getYookoreNotificationItem(event);
+                if (notificationItem != null) {
 //                logger.info(notificationItem.toString());
-                mapper.save(notificationItem);
-                sendToPushQueue(event);
+                    mapper.save(notificationItem);
+                }
             }
+            sendToPushQueue(event);
+
         } catch (Exception e) {
             logger.error(e.getMessage());
         }

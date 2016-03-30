@@ -29,9 +29,9 @@ import org.springframework.context.annotation.PropertySource;
 @Configuration
 @PropertySource("classpath:config.properties")
 public class RabbitMQConfig {
-//    String notificationQueueName = "myqueue";
+    //    String notificationQueueName = "myqueue";
     String pclNotificationQueueName = "ns_blogpost_pcl_queue";
-    String notificationQueueName = "a.new.ns.blogpost.queue";
+    String notificationQueueName;
 
     String userEmailQueue = "user_email_verify_notify_queue";
     String resetEmailQueue = "reset_user_password_email_notify_queue";
@@ -48,11 +48,26 @@ public class RabbitMQConfig {
 
     Logger log = LoggerFactory.getLogger(this.getClass());
 
+    public RabbitMQConfig() {
+        if (System.getenv().containsKey("PLATFORM")) {
+            notificationQueueName = "a.new.ns.blogpost.queue";
+        } else {
+            notificationQueueName = "direct_messaging_queue";
+        }
+    }
+
     @Bean
     ConnectionFactory connectionFactory() {
-        CachingConnectionFactory factory = new CachingConnectionFactory("192.168.121.154");
-        factory.setUsername("yookore");
-        factory.setPassword("Wordpass15");
+        CachingConnectionFactory factory;
+        if (System.getenv().containsKey("PLATFORM")) {
+            factory = new CachingConnectionFactory("192.168.121.154");
+            factory.setUsername("yookore");
+            factory.setPassword("Wordpass15");
+        } else {
+            factory = new CachingConnectionFactory("localhost");
+            factory.setUsername("guest");
+            factory.setPassword("guest");
+        }
         return factory;
     }
 
@@ -95,9 +110,18 @@ public class RabbitMQConfig {
 
     @Bean
     RabbitTemplate rabbitTemplate() {
-        CachingConnectionFactory factory = new CachingConnectionFactory("192.168.121.155");
-        factory.setPassword("Gonzo@7072");
-        factory.setUsername("yookore");
+        CachingConnectionFactory factory;
+        if (System.getenv().containsKey("PLATFORM")) {
+            factory = new CachingConnectionFactory("192.168.121.155");
+            factory.setPassword("Gonzo@7072");
+            factory.setUsername("yookore");
+
+        } else {
+            factory = new CachingConnectionFactory("localhost");
+            factory.setPassword("guest");
+            factory.setUsername("guest");
+
+        }
         RabbitTemplate template = new RabbitTemplate(factory);
         template.setMessageConverter(jsonMessageConverter());
         return template;

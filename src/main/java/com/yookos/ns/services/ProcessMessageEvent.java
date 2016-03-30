@@ -13,19 +13,20 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class ProcessMessageEvent {
-    public final String GROUP_INVITE = "GROUP_INVITE";
-    public final String VIDEO_NOTIFICATION = "VIDEO_NOTIFICATION";
-    public final String AUDIO_NOTIFICATION = "AUDIO_NOTIFICATION";
-    public final String BLOG_POST_CREATED = "BLOG_POST_CREATED";
-    public final String STATUS_UPDATE_CREATED = "STATUS_UPDATE_CREATED";
-    public final String PHOTO_CREATED = "PHOTO_CREATED";
-    public final String COMMENT_NOTIFICATION = "COMMENT_NOTIFICATION";
-    public final String USER_VERIFICATION = "String USER_VERIFICATION";
-    public final String RESET_PASSWORD = "RESET_PASSWORD";
-    public final String CHANGE_PASSWORD = "CHANGE_PASSWORD";
-    public final String UPDATE_PRIMARY_EMAIL = "UPDATE_PRIMARY_EMAIL";
-    public final String FRIEND_REQUEST = "FRIEND_REQUEST";
-    public final String FRIEND_REQUEST_ACCEPTED = "FRIEND_REQUEST_ACCEPTED";
+    public static final String GROUP_INVITE = "GROUP_INVITE";
+    public static final String VIDEO_NOTIFICATION = "VIDEO_NOTIFICATION";
+    public static final String AUDIO_NOTIFICATION = "AUDIO_NOTIFICATION";
+    public static final String BLOG_POST_CREATED = "BLOG_POST_CREATED";
+    public static final String STATUS_UPDATE_CREATED = "STATUS_UPDATE_CREATED";
+    public static final String PHOTO_CREATED = "PHOTO_CREATED";
+    public static final String COMMENT_NOTIFICATION = "COMMENT_NOTIFICATION";
+    public static final String USER_VERIFICATION = "String USER_VERIFICATION";
+    public static final String RESET_PASSWORD = "RESET_PASSWORD";
+    public static final String CHANGE_PASSWORD = "CHANGE_PASSWORD";
+    public static final String UPDATE_PRIMARY_EMAIL = "UPDATE_PRIMARY_EMAIL";
+    public static final String FRIEND_REQUEST = "FRIEND_REQUEST";
+    public static final String FRIEND_REQUEST_ACCEPTED = "FRIEND_REQUEST_ACCEPTED";
+    public static final String MESSAGE_SENT = "MESSAGE_SENT";
 
     @Autowired
     ServiceUtils serviceUtils;
@@ -43,6 +44,7 @@ public class ProcessMessageEvent {
                 || action.equals(PHOTO_CREATED)
                 || action.equals(COMMENT_NOTIFICATION)
                 || action.equals(AUDIO_NOTIFICATION)
+                || action.equals(MESSAGE_SENT)
                 || action.equals(VIDEO_NOTIFICATION)) {
             log.info("Processing push messaging event: {}", event);
             serviceUtils.preparePushMessages(event);
