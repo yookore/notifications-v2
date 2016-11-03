@@ -62,6 +62,7 @@ public class ProcessMessageEvent {
 
         if (action.equals(FRIEND_REQUEST) || action.equals(FRIEND_REQUEST_ACCEPTED)) {
             log.info("Processing friend request messaging event: {}", event);
+            serviceUtils.prepareSinglePushMessage(event);
         }
     }
 

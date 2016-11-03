@@ -20,9 +20,7 @@ public class CassandraConfig {
     @Bean
     Cluster cassandraCluster(){
         AuthProvider provider = new PlainTextAuthProvider("cassandra","Gonzo@7072");
-
         return Cluster.builder().addContactPoints("192.168.121.171", "192.168.121.172", "192.168.121.173", "192.168.121.225", "192.168.121.174").withAuthProvider(provider).build();
-
     }
 
     @Bean

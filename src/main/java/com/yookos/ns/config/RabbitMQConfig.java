@@ -37,7 +37,7 @@ public class RabbitMQConfig {
     String resetEmailQueue = "reset_user_password_email_notify_queue";
     String passwordEmailQueue = "password_change_email_notify_queue";
     String updateEmailQueue = "update_primary_email_notify_queue";
-    String friendRequestQueue = "ns_relationship_queue";
+    String friendRequestQueue = "new_relationships";
     String activityQueue = "pps_activity_queue";
     String statusUpdateQueue = "ns_statusupdate_creation_queue";
     String groupInvitationQueue = "ns_group_invitation_queue";
@@ -60,10 +60,12 @@ public class RabbitMQConfig {
     ConnectionFactory connectionFactory() {
         CachingConnectionFactory factory;
         if (System.getenv().containsKey("PLATFORM")) {
+            log.info("Using prod rabbit");
             factory = new CachingConnectionFactory("192.168.121.154");
             factory.setUsername("yookore");
             factory.setPassword("Wordpass15");
         } else {
+            log.info("Using local rabbit");
             factory = new CachingConnectionFactory("localhost");
             factory.setUsername("guest");
             factory.setPassword("guest");
@@ -113,7 +115,7 @@ public class RabbitMQConfig {
         CachingConnectionFactory factory;
         if (System.getenv().containsKey("PLATFORM")) {
             factory = new CachingConnectionFactory("192.168.121.155");
-            factory.setPassword("Gonzo@7072");
+            factory.setPassword("Wordpass15");
             factory.setUsername("yookore");
 
         } else {
@@ -137,35 +139,18 @@ public class RabbitMQConfig {
         return new PushNotificationReceiver();
     }
 
-//    @Bean
-//    MessageListenerAdapter pushListenerAdapter(PushNotificationReceiver pushNotificationReceiver) {
-//        return new MessageListenerAdapter(pushNotificationReceiver);
-//    }
-
     @Bean
     MessageListenerAdapter listenerAdapter(NotificationReceiver receiver) {
         return new MessageListenerAdapter(receiver, "receiveMessage");
 
     }
 
-//    @Bean
-//    SimpleMessageListenerContainer pushContainer(PushNotificationReceiver pushNotificationReceiver){
-//        CachingConnectionFactory factory = new CachingConnectionFactory("192.168.121.155");
-//        factory.setPassword("Gonzo@7072");
-//        factory.setUsername("yookore");
-//        SimpleMessageListenerContainer container = new SimpleMessageListenerContainer();
-//        container.setConnectionFactory(factory);
-//        container.setQueueNames(notificationQueueName);
-//        container.setMessageListener(pushNotificationReceiver);
-//        return container;
-//
-//    }
 
     @Bean
     SimpleMessageListenerContainer container(ConnectionFactory connectionFactory, NotificationReceiver receiver) {
         SimpleMessageListenerContainer container = new SimpleMessageListenerContainer();
         container.setConnectionFactory(connectionFactory);
-        container.setQueueNames(pclNotificationQueueName, notificationQueueName);
+        container.setQueueNames(pclNotificationQueueName, notificationQueueName, friendRequestQueue);
         container.setMessageListener(receiver);
         return container;
 

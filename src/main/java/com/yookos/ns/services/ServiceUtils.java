@@ -78,6 +78,12 @@ public class ServiceUtils {
     @Autowired
     Gson gson;
 
+    public void prepareSinglePushMessage(NotificationEvent event) {
+        //For friend request and friend acceptance
+        logger.info("Processing friend request messaging event: {}", event);
+        saveAndPushToQueue(event);
+    }
+
     public void preparePushMessages(NotificationEvent event) {
 
         Preference preference = new Preference();
@@ -145,10 +151,12 @@ public class ServiceUtils {
     }
 
     private void getObjectId(NotificationEvent event) {
-        String url = (String) event.getExtraInfo().get("contentUrl");
-        String[] split = url.split("/");
-        logger.info("Object id: {}", split[4]);
-        event.getExtraInfo().put("objectid", split[4]);
+        if (event.getExtraInfo() != null && event.getExtraInfo().containsKey("contentUrl")){
+            String url = (String) event.getExtraInfo().get("contentUrl");
+            String[] split = url.split("/");
+            logger.info("Object id: {}", split[4]);
+            event.getExtraInfo().put("objectid", split[4]);
+        }
     }
 
 
@@ -159,48 +167,49 @@ public class ServiceUtils {
         return preference;
     }
 
-
     private void processContentUrl(NotificationEvent event) {
-        String objectType = (String) event.getExtraInfo().get("objectType");
-        String newUrl = (String) event.getExtraInfo().get("contentUrl");
-        logger.info("Object Type: ", objectType);
-        if (objectType.equals("blogpost") && newUrl.startsWith("/api")) {
-            newUrl = "blogpost.apps.yookosapps.com" + newUrl;
-            newUrl = newUrl.replace("/?from=aes", "");
-            event.getExtraInfo().put("contentUrl", newUrl);
-        }
-        if (objectType.equals("statusupdate") && newUrl.startsWith("/api")) {
-            newUrl = "statusupdate.apps.yookosapps.com" + newUrl;
-            newUrl = newUrl.replace("/?from=aes", "");
-            event.getExtraInfo().put("contentUrl", newUrl);
-        }
-        if (objectType.equals("photo") && newUrl.startsWith("/api")) {
-            newUrl = "photos.apps.yookosapps.com" + newUrl;
-            newUrl = newUrl.replace("/?from=aes", "");
-            event.getExtraInfo().put("contentUrl", newUrl);
-        }
+        if(event.getExtraInfo() != null){
+            String objectType = (String) event.getExtraInfo().get("objectType");
+            String newUrl = (String) event.getExtraInfo().get("contentUrl");
+            logger.info("Object Type: ", objectType);
+            if (objectType.equals("blogpost") && newUrl.startsWith("/api")) {
+                newUrl = "blogpost.apps.yookosapps.com" + newUrl;
+                newUrl = newUrl.replace("/?from=aes", "");
+                event.getExtraInfo().put("contentUrl", newUrl);
+            }
+            if (objectType.equals("statusupdate") && newUrl.startsWith("/api")) {
+                newUrl = "statusupdate.apps.yookosapps.com" + newUrl;
+                newUrl = newUrl.replace("/?from=aes", "");
+                event.getExtraInfo().put("contentUrl", newUrl);
+            }
+            if (objectType.equals("photo") && newUrl.startsWith("/api")) {
+                newUrl = "photos.apps.yookosapps.com" + newUrl;
+                newUrl = newUrl.replace("/?from=aes", "");
+                event.getExtraInfo().put("contentUrl", newUrl);
+            }
 
-        if (objectType.equals("video") && newUrl.startsWith("/api")) {
-            newUrl = "videos.apps.yookosapps.com" + newUrl;
-            newUrl = newUrl.replace("/?from=aes", "");
-            event.getExtraInfo().put("contentUrl", newUrl);
-        }
-        if (objectType.equals("share") && newUrl.startsWith("/api")) {
-            newUrl = "share.apps.yookosapps.com" + newUrl;
-            newUrl = newUrl.replace("/?from=aes", "");
-            event.getExtraInfo().put("contentUrl", newUrl);
-        }
+            if (objectType.equals("video") && newUrl.startsWith("/api")) {
+                newUrl = "videos.apps.yookosapps.com" + newUrl;
+                newUrl = newUrl.replace("/?from=aes", "");
+                event.getExtraInfo().put("contentUrl", newUrl);
+            }
+            if (objectType.equals("share") && newUrl.startsWith("/api")) {
+                newUrl = "share.apps.yookosapps.com" + newUrl;
+                newUrl = newUrl.replace("/?from=aes", "");
+                event.getExtraInfo().put("contentUrl", newUrl);
+            }
 
-        if (objectType.equals("post") && newUrl.startsWith("/api")) {
-            newUrl = "post.apps.yookosapps.com" + newUrl;
-            newUrl = newUrl.replace("/?from=aes", "");
-            event.getExtraInfo().put("contentUrl", newUrl);
-        }
+            if (objectType.equals("post") && newUrl.startsWith("/api")) {
+                newUrl = "post.apps.yookosapps.com" + newUrl;
+                newUrl = newUrl.replace("/?from=aes", "");
+                event.getExtraInfo().put("contentUrl", newUrl);
+            }
 
-        if (objectType.equals("audio") && newUrl.startsWith("/api")) {
-            newUrl = "audio.apps.yookosapps.com" + newUrl;
-            newUrl = newUrl.replace("/?from=aes", "");
-            event.getExtraInfo().put("contentUrl", newUrl);
+            if (objectType.equals("audio") && newUrl.startsWith("/api")) {
+                newUrl = "audio.apps.yookosapps.com" + newUrl;
+                newUrl = newUrl.replace("/?from=aes", "");
+                event.getExtraInfo().put("contentUrl", newUrl);
+            }
         }
 
     }
@@ -346,13 +355,18 @@ public class ServiceUtils {
 
     private void sendToPushQueue(NotificationEvent event) {
         //TODO:
-        logger.info("Pushing message event");
+        logger.info("Pushing message event:{}", event);
         rabbitTemplate.convertAndSend("myexchange", "myqueue", event);
     }
 
     private void saveAndPushToQueue(NotificationEvent event) {
+        if (event.getActor().getUsername().equals(event.getRecipient().getUsername())) {
+            logger.info("//We are not sending notifications to the actor");
+            return;
+        }
         try {
             //We will not be doing any processing on direct message events
+            logger.info("Test processing on events");
             if (!Objects.equals(event.getAction(), ProcessMessageEvent.MESSAGE_SENT)) {
                 processContentUrl(event);
                 YookoreNotificationItem notificationItem = getYookoreNotificationItem(event);
@@ -361,9 +375,11 @@ public class ServiceUtils {
                     mapper.save(notificationItem);
                 }
             }
+            logger.info("About to send to push queue::: {}", event);
             sendToPushQueue(event);
 
         } catch (Exception e) {
+            e.printStackTrace();
             logger.error(e.getMessage());
         }
 
@@ -382,4 +398,6 @@ public class ServiceUtils {
             logger.error(e.getMessage());
         }
     }
+
+
 }

@@ -44,7 +44,7 @@ public class YookoreUser {
     }
 
     public String getFullNames() {
-        if(fullNames.trim().length() == 0){
+        if(fullNames != null && fullNames.trim().length() == 0){
             String fullname =firstName + " " + lastName;
             return fullname.trim();
         }else{
@@ -87,7 +87,7 @@ public class YookoreUser {
                 ", userId='" + userId + '\'' +
                 ", username='" + username + '\'' +
                 ", fullNames='" + fullNames + '\'' +
-                ", firstName='" + firstName + '\'' +
+                ", firstName='" + getFullNames() + '\'' +
                 ", lastName='" + lastName + '\'' +
                 ", preference=" + preference +
                 '}';
