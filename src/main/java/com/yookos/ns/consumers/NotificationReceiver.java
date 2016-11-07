@@ -61,6 +61,7 @@ public class NotificationReceiver implements ChannelAwareMessageListener {
                 event.setActor(actor);
                 event.setRecipient(recipient);
 
+
             } else {
                 log.info("Action Type: {}", jsonObject.getString("action"));
                 event = gson.fromJson(msg, NotificationEvent.class);

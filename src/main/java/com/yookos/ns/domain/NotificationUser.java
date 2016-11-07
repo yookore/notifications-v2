@@ -166,4 +166,27 @@ public class NotificationUser {
     public void setUsername(String username) {
         this.username = username;
     }
+
+    @Override
+    public String toString() {
+        return "NotificationUser{" +
+                "id=" + id +
+                ", accept_friend_request_notification=" + accept_friend_request_notification +
+                ", all_notification=" + all_notification +
+                ", block_list=" + block_list +
+                ", cell_phone='" + cell_phone + '\'' +
+                ", create_content_notification=" + create_content_notification +
+                ", email_notification=" + email_notification +
+                ", firstname='" + firstname + '\'' +
+                ", friend_create_content_notification=" + friend_create_content_notification +
+                ", friend_tag_notification=" + friend_tag_notification +
+                ", lastname='" + lastname + '\'' +
+                ", message_notification=" + message_notification +
+                ", primary_email='" + primary_email + '\'' +
+                ", receive_friend_request_notification=" + receive_friend_request_notification +
+                ", registration_ids=" + registration_ids +
+                ", sms_notification=" + sms_notification +
+                ", username='" + username + '\'' +
+                '}';
+    }
 }

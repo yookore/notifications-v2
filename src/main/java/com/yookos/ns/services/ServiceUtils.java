@@ -8,7 +8,6 @@ import com.mongodb.BasicDBObject;
 import com.mongodb.MongoClient;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
-import com.yookos.ns.consumers.NotificationReceiver;
 import com.yookos.ns.domain.NotificationUser;
 import com.yookos.ns.domain.Preference;
 import com.yookos.ns.domain.RedisUser;
@@ -80,7 +79,7 @@ public class ServiceUtils {
 
     public void prepareSinglePushMessage(NotificationEvent event) {
         //For friend request and friend acceptance
-        logger.info("Processing friend request messaging event: {}", event);
+//        logger.info("Processing friend request messaging event: {}", event);
         saveAndPushToQueue(event);
     }
 
@@ -93,7 +92,7 @@ public class ServiceUtils {
         if (event.getAction().equals(ProcessMessageEvent.COMMENT_NOTIFICATION)) {
             getObjectId(event);
             //We are only sending to those in the target list of users
-            logger.info("Processing comment or messaging notifications, {}", event.toString());
+//            logger.info("Processing comment or messaging notifications, {}", event.toString());
             String parentObjectType = event.getTargetUsers().get(0).getObjectType();
             String parentContentUrl = event.getTargetUsers().get(0).getContentUrl();
             event.getExtraInfo().put("parentObjectType", parentObjectType);
@@ -114,9 +113,6 @@ public class ServiceUtils {
                 if (actorInBlockedList(recipient, event.getActor())) {
                     logger.info("{} has blocked {}", recipient.getUsername(), event.getActor().getUsername());
                 } else {
-                    if (recipient.getUsername().equals("freidaegbuna")) {
-                        logger.info("Pushing for Freida");
-                    }
                     Preference prefs = getPreferencesForUser(recipient.getUsername());
                     recipient.setPreference(prefs);
                     event.setRecipient(recipient);
@@ -146,12 +142,16 @@ public class ServiceUtils {
 
     private boolean actorInBlockedList(YookoreUser recipient, YookoreUser actor) {
         logger.info("Checking for blocked list");
-        NotificationUser user = notificationUserMapper.get(UUID.fromString(recipient.getUserId()));
-        return user.getBlock_list() != null && user.getBlock_list().contains(UUID.fromString(actor.getUserId()));
+        if(recipient != null && actor != null){
+            NotificationUser user = notificationUserMapper.get(UUID.fromString(recipient.getUserId()));
+            logger.info("Notification User: {}", user);
+            return user.getBlock_list() != null && user.getBlock_list().contains(UUID.fromString(actor.getUserId()));
+        }
+        return false;
     }
 
     private void getObjectId(NotificationEvent event) {
-        if (event.getExtraInfo() != null && event.getExtraInfo().containsKey("contentUrl")){
+        if (event.getExtraInfo() != null && event.getExtraInfo().containsKey("contentUrl")) {
             String url = (String) event.getExtraInfo().get("contentUrl");
             String[] split = url.split("/");
             logger.info("Object id: {}", split[4]);
@@ -168,7 +168,7 @@ public class ServiceUtils {
     }
 
     private void processContentUrl(NotificationEvent event) {
-        if(event.getExtraInfo() != null){
+        if (event.getExtraInfo() != null) {
             String objectType = (String) event.getExtraInfo().get("objectType");
             String newUrl = (String) event.getExtraInfo().get("contentUrl");
             logger.info("Object Type: ", objectType);
@@ -229,11 +229,10 @@ public class ServiceUtils {
         FindIterable<Document> relatedusers;
 
         if (publicFigure) {
-            relatedusers = yookoreDb.find(new BasicDBObject("relateduser", yookoreUser.getUsername()).append("has_device", true));
+            relatedusers = yookoreDb.find(new BasicDBObject("relateduser", yookoreUser.getUsername()));
         } else {
-            relatedusers = yookoreDb.find(new BasicDBObject("relateduser", yookoreUser.getUsername()).append("has_device", true));
+            relatedusers = yookoreDb.find(new BasicDBObject("relateduser", yookoreUser.getUsername()));
         }
-
 
         for (Document relateduser : relatedusers) {
             String username = relateduser.getString("user");
@@ -241,6 +240,7 @@ public class ServiceUtils {
                 YookoreUser recipient = getRecipient(username);
 
                 if (recipient != null) {
+                    logger.info("Adding user: {}", username);
                     users.add(recipient);
                 }
 
@@ -252,9 +252,23 @@ public class ServiceUtils {
         return users;
     }
 
+    public RedisUser getRedisUser(String username) {
+        String actorString = jedisCluster.get(CACHE_PREFIX + CACHE_DOMAIN_PROFILE_PREFIX + username);
+        if (actorString != null) {
+            return gson.fromJson(actorString, RedisUser.class);
+        }
+        String request = UPM_URL + username;
+        RedisUser redisRecipient = restTemplate.getForObject(request, RedisUser.class);
+        return redisRecipient;
+
+    }
+
     private YookoreUser getRecipient(String username) {
         String actorString = jedisCluster.get(CACHE_PREFIX + CACHE_DOMAIN_PROFILE_PREFIX + username);
         YookoreUser recipient;
+        if(username.equals("mercyrumbyrum")){
+            logger.info("Processing for Mercy");
+        }
         if (actorString != null) {
             RedisUser redisRecipient = gson.fromJson(actorString, RedisUser.class);
             if (redisRecipient.getUserid() != null) {
@@ -268,7 +282,7 @@ public class ServiceUtils {
                 Preference preference = new Preference();
                 preference.setPush(true);
                 recipient.setPreference(preference);
-                logger.info("Pulled user from redis: {}", redisRecipient);
+//                logger.info("Pulled user from redis: {}", redisRecipient);
 
             } else {
                 recipient = processRedisUser(username);
@@ -276,6 +290,7 @@ public class ServiceUtils {
         } else {
             recipient = processRedisUser(username);
         }
+        logger.info("Recipient: {}", recipient);
         return recipient;
     }
 
@@ -295,7 +310,7 @@ public class ServiceUtils {
             recipient.setPreference(preference);
             String cachedUserKey = CACHE_PREFIX + CACHE_DOMAIN_PROFILE_PREFIX + username;
             jedisCluster.set(cachedUserKey, gson.toJson(recipient));
-            logger.info("Pulled user from upm: {}", redisRecipient);
+//            logger.info("Pulled user from upm: {}", redisRecipient);
         }
         return recipient;
     }
@@ -355,13 +370,13 @@ public class ServiceUtils {
 
     private void sendToPushQueue(NotificationEvent event) {
         //TODO:
-        logger.info("Pushing message event:{}", event);
+//        logger.info("Pushing message event:{}", event);
         rabbitTemplate.convertAndSend("myexchange", "myqueue", event);
     }
 
     private void saveAndPushToQueue(NotificationEvent event) {
         if (event.getActor().getUsername().equals(event.getRecipient().getUsername())) {
-            logger.info("//We are not sending notifications to the actor");
+            logger.info("We are not sending notifications to the actor");
             return;
         }
         try {
@@ -371,11 +386,13 @@ public class ServiceUtils {
                 processContentUrl(event);
                 YookoreNotificationItem notificationItem = getYookoreNotificationItem(event);
                 if (notificationItem != null) {
-//                logger.info(notificationItem.toString());
+                    if (event.getRecipient().getUsername().equals("mercyrumbyrum")){
+                        logger.info("Saving item: {}", notificationItem.toString());
+                    }
+
                     mapper.save(notificationItem);
                 }
             }
-            logger.info("About to send to push queue::: {}", event);
             sendToPushQueue(event);
 
         } catch (Exception e) {
