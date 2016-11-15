@@ -1,10 +1,14 @@
 package com.yookos.ns.services;
 
+import com.yookos.ns.domain.RedisUser;
 import com.yookos.ns.models.NotificationEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Created by jome on 2016/01/19.
@@ -25,6 +29,7 @@ public class ProcessMessageEvent {
     public static final String CHANGE_PASSWORD = "CHANGE_PASSWORD";
     public static final String UPDATE_PRIMARY_EMAIL = "UPDATE_PRIMARY_EMAIL";
     public static final String FRIEND_REQUEST = "FRIEND_REQUEST";
+    public static final String FRIEND = "FRIEND";
     public static final String FRIEND_REQUEST_ACCEPTED = "FRIEND_REQUEST_ACCEPTED";
     public static final String MESSAGE_SENT = "MESSAGE_SENT";
 
@@ -60,7 +65,19 @@ public class ProcessMessageEvent {
 
         }
 
-        if (action.equals(FRIEND_REQUEST) || action.equals(FRIEND_REQUEST_ACCEPTED)) {
+        if (action.equals(FRIEND_REQUEST) || action.equals(FRIEND_REQUEST_ACCEPTED)||action.equals(FRIEND)) {
+            RedisUser redisUser = serviceUtils.getRedisUser(event.getActor().getUsername());
+            Map<String, Object> info = new HashMap<>();
+
+            if(redisUser != null){
+                info.put("actorImgurl", redisUser.getAvatarurl());
+            }
+
+
+
+            event.setExtraInfo(info);
+            if (event.getAction().equals(FRIEND))
+                    event.setAction(FRIEND_REQUEST_ACCEPTED);
             log.info("Processing friend request messaging event: {}", event);
             serviceUtils.prepareSinglePushMessage(event);
         }

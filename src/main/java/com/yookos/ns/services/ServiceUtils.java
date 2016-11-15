@@ -13,6 +13,7 @@ import com.yookos.ns.domain.Preference;
 import com.yookos.ns.domain.RedisUser;
 import com.yookos.ns.domain.YookoreNotificationItem;
 import com.yookos.ns.models.NotificationEvent;
+import com.yookos.ns.models.TargetUser;
 import com.yookos.ns.models.YookoreUser;
 import org.bson.Document;
 import org.slf4j.Logger;
@@ -142,10 +143,13 @@ public class ServiceUtils {
 
     private boolean actorInBlockedList(YookoreUser recipient, YookoreUser actor) {
         logger.info("Checking for blocked list");
-        if(recipient != null && actor != null){
+        if (recipient != null && actor != null) {
             NotificationUser user = notificationUserMapper.get(UUID.fromString(recipient.getUserId()));
             logger.info("Notification User: {}", user);
-            return user.getBlock_list() != null && user.getBlock_list().contains(UUID.fromString(actor.getUserId()));
+
+            return user != null && user.getBlock_list() != null && user.getBlock_list().contains(UUID.fromString(actor.getUserId()));
+
+
         }
         return false;
     }
@@ -168,7 +172,8 @@ public class ServiceUtils {
     }
 
     private void processContentUrl(NotificationEvent event) {
-        if (event.getExtraInfo() != null) {
+        logger.info("Map size: {}", event.getExtraInfo().size());
+        if (event.getExtraInfo() != null && event.getExtraInfo().containsKey("objectType") && event.getExtraInfo().containsKey("contentUrl")) {
             String objectType = (String) event.getExtraInfo().get("objectType");
             String newUrl = (String) event.getExtraInfo().get("contentUrl");
             logger.info("Object Type: ", objectType);
@@ -220,22 +225,41 @@ public class ServiceUtils {
     }
 
     private List<YookoreUser> getRelatedPCLUsers(YookoreUser yookoreUser) {
+        /**
+         * The issue is the amount of time it takes to process PCL followers
+         * We need a better way to process this so it does not block so much
+         *
+         */
+
         return getUsers(yookoreUser, true);
     }
 
     private List<YookoreUser> getUsers(YookoreUser yookoreUser, boolean publicFigure) {
         List<YookoreUser> users = new ArrayList<>();
         MongoCollection<Document> yookoreDb = client.getDatabase("yookore").getCollection("aes_relationships");
+        MongoCollection<Document> pclFollowersDb = client.getDatabase("yookore").getCollection("pcl_followers");
+
         FindIterable<Document> relatedusers;
 
+        if(publicFigure && yookoreUser.getUsername().equalsIgnoreCase("pastorchrislive")){
+//            relatedusers = pclFollowersDb.find();
+            relatedusers = yookoreDb.find(new BasicDBObject("relateduser", yookoreUser.getUsername()).append("has_device", true));
+        }
+        else
         if (publicFigure) {
-            relatedusers = yookoreDb.find(new BasicDBObject("relateduser", yookoreUser.getUsername()));
+            relatedusers = yookoreDb.find(new BasicDBObject("relateduser", yookoreUser.getUsername()).append("has_device", true));
         } else {
-            relatedusers = yookoreDb.find(new BasicDBObject("relateduser", yookoreUser.getUsername()));
+            relatedusers = yookoreDb.find(new BasicDBObject("relateduser", yookoreUser.getUsername()).append("has_device", true));
         }
 
         for (Document relateduser : relatedusers) {
-            String username = relateduser.getString("user");
+            String username;
+            if (relateduser.containsKey("username")) {
+                username = relateduser.getString("username");
+            } else {
+                username = relateduser.getString("user");
+            }
+
             try {
                 YookoreUser recipient = getRecipient(username);
 
@@ -266,9 +290,7 @@ public class ServiceUtils {
     private YookoreUser getRecipient(String username) {
         String actorString = jedisCluster.get(CACHE_PREFIX + CACHE_DOMAIN_PROFILE_PREFIX + username);
         YookoreUser recipient;
-        if(username.equals("mercyrumbyrum")){
-            logger.info("Processing for Mercy");
-        }
+
         if (actorString != null) {
             RedisUser redisRecipient = gson.fromJson(actorString, RedisUser.class);
             if (redisRecipient.getUserid() != null) {
@@ -296,6 +318,7 @@ public class ServiceUtils {
 
     private YookoreUser processRedisUser(String username) {
         String request = UPM_URL + username;
+        logger.info("String for profile: {}", request);
         RedisUser redisRecipient = restTemplate.getForObject(request, RedisUser.class);
         YookoreUser recipient = new YookoreUser();
         if (redisRecipient != null) {
@@ -364,17 +387,30 @@ public class ServiceUtils {
     }
 
     private void sendToPCLPushQueue(NotificationEvent event) {
-        //TODO:
         rabbitTemplate.convertAndSend("myexchange", "pcl_queue", event);
     }
 
     private void sendToPushQueue(NotificationEvent event) {
         //TODO:
-//        logger.info("Pushing message event:{}", event);
+        logger.info("Pushing message event:{}", event);
         rabbitTemplate.convertAndSend("myexchange", "myqueue", event);
     }
 
     private void saveAndPushToQueue(NotificationEvent event) {
+        logger.info("Test Event: {}", event );
+        if (event.getRecipient() == null && event.getTargetUsers().get(0) != null){
+            YookoreUser r = new YookoreUser();
+            TargetUser t = event.getTargetUsers().get(0);
+            r.setUsername(t.getUsername());
+            r.setUserId(t.getUserId());
+            r.setType("USER");
+            r.setFirstName(t.getFirstName());
+            r.setLastName(t.getLastName());
+            r.setPreference(new Preference());
+            r.setFullNames(t.getFirstName() + " " + t.getLastName());
+            event.setRecipient(r);
+
+        }
         if (event.getActor().getUsername().equals(event.getRecipient().getUsername())) {
             logger.info("We are not sending notifications to the actor");
             return;
@@ -386,9 +422,12 @@ public class ServiceUtils {
                 processContentUrl(event);
                 YookoreNotificationItem notificationItem = getYookoreNotificationItem(event);
                 if (notificationItem != null) {
-                    if (event.getRecipient().getUsername().equals("mercyrumbyrum")){
+                    if (event.getRecipient().getUsername().equals("mercyrumbyrum")) {
                         logger.info("Saving item: {}", notificationItem.toString());
                     }
+
+                    if (event.getAction().equalsIgnoreCase(FRIEND_REQUEST))
+                        notificationItem.setRead(true);
 
                     mapper.save(notificationItem);
                 }
@@ -408,6 +447,7 @@ public class ServiceUtils {
             logger.info("Content URL: {}", event.getExtraInfo().get("ContentUrl"));
             YookoreNotificationItem notificationItem = getYookoreNotificationItem(event);
             if (notificationItem != null) {
+                logger.info("Saving special notification item: {}", notificationItem);
                 mapper.save(notificationItem);
                 sendToPCLPushQueue(event);
             }

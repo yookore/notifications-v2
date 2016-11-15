@@ -37,7 +37,7 @@ public class RabbitMQConfig {
     String resetEmailQueue = "reset_user_password_email_notify_queue";
     String passwordEmailQueue = "password_change_email_notify_queue";
     String updateEmailQueue = "update_primary_email_notify_queue";
-    String friendRequestQueue = "new_relationships";
+    String friendRequestQueue = "ns_relationship_queue";
     String activityQueue = "pps_activity_queue";
     String statusUpdateQueue = "ns_statusupdate_creation_queue";
     String groupInvitationQueue = "ns_group_invitation_queue";
@@ -150,7 +150,7 @@ public class RabbitMQConfig {
     SimpleMessageListenerContainer container(ConnectionFactory connectionFactory, NotificationReceiver receiver) {
         SimpleMessageListenerContainer container = new SimpleMessageListenerContainer();
         container.setConnectionFactory(connectionFactory);
-        container.setQueueNames(pclNotificationQueueName, notificationQueueName, friendRequestQueue);
+        container.setQueueNames(pclNotificationQueueName, notificationQueueName, friendRequestQueue, videoCreationQueue);
         container.setMessageListener(receiver);
         return container;
 
