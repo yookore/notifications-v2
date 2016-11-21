@@ -14,6 +14,9 @@ import org.springframework.amqp.rabbit.core.ChannelAwareMessageListener;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * Created by jome on 2016/01/19.
  */
@@ -34,18 +37,21 @@ public class NotificationReceiver implements ChannelAwareMessageListener {
         try {
             String msg = new String(message.getBody());
 
-            log.info("Message received: {}", msg);
+            log.info("Message received >>>>>>>>>>>>>>>>>>>>>>>>>>>>> \n\n\n\n\n: {}", msg);
 
             JSONObject jsonObject = new JSONObject(msg);
             if (jsonObject.has("type")) {
-                log.info("Action Type: {}", jsonObject.getString("type"));
+                log.info("Action Type >>>>>>: {}", jsonObject.getString("type"));
                 event = new NotificationEvent();
+
+
 
                 YookoreUser actor = new YookoreUser();
                 actor.setFirstName(jsonObject.getJSONObject("actor").getString("firstname"));
                 actor.setLastName(jsonObject.getJSONObject("actor").getString("lastname"));
                 actor.setFullNames(actor.getFirstName() + " " + actor.getLastName());
                 actor.setUserId(jsonObject.getJSONObject("actor").getString("userid"));
+
                 actor.setType("USER");
                 actor.setUsername(jsonObject.getJSONObject("actor").getString("username"));
 
@@ -60,6 +66,12 @@ public class NotificationReceiver implements ChannelAwareMessageListener {
                 event.setAction(jsonObject.getString("type"));
                 event.setActor(actor);
                 event.setRecipient(recipient);
+
+                Map<String, Object> info= new HashMap<>();
+                info.put("actorImgurl", jsonObject.getJSONObject("extraInfo").getString("actorImgurl"));
+                info.put("targetImgurl", jsonObject.getJSONObject("extraInfo").getString("targetUserImgurl"));
+
+                event.setExtraInfo(info);
 
 
             } else {

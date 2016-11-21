@@ -52,6 +52,7 @@ public class RabbitMQConfig {
         if (System.getenv().containsKey("PLATFORM")) {
             notificationQueueName = "a.new.ns.blogpost.queue";
         } else {
+//            notificationQueueName = commentCreationQueue;
             notificationQueueName = "direct_messaging_queue";
         }
     }

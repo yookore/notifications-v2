@@ -93,15 +93,27 @@ public class ServiceUtils {
         if (event.getAction().equals(ProcessMessageEvent.COMMENT_NOTIFICATION)) {
             getObjectId(event);
             //We are only sending to those in the target list of users
-//            logger.info("Processing comment or messaging notifications, {}", event.toString());
+//            logger.info("Processing comment or messaging notifications, {}", event.toString());''
+
+            logger.info("Comments sections<<<<<<<<<<<<<<<<<");
             String parentObjectType = event.getTargetUsers().get(0).getObjectType();
+
+            logger.info("Comments parentObjectType <<<<<<<<<<<<<<<<< {}", parentObjectType);
             String parentContentUrl = event.getTargetUsers().get(0).getContentUrl();
+            logger.info("Comments parentContentUrl <<<<<<<<<<<<<<<<< {}", parentContentUrl);
             event.getExtraInfo().put("parentObjectType", parentObjectType);
+
             event.getExtraInfo().put("parentContentUrl", parentContentUrl);
+
             YookoreUser recipient = getRecipient(event.getTargetUsers().get(0).getUsername());
+
             Preference prefs = getPreferencesForUser(recipient.getUsername());
+
             recipient.setPreference(prefs);
+
             event.setRecipient(recipient);
+            logger.info("Comments sections end <<<<<<<<<<<<<<<<<");
+
             saveAndPushToQueue(event);
         } else if (event.getAction().equals(ProcessMessageEvent.MESSAGE_SENT)) {
             //We are not processing anything. Push as is...
@@ -174,6 +186,7 @@ public class ServiceUtils {
     private void processContentUrl(NotificationEvent event) {
         logger.info("Map size: {}", event.getExtraInfo().size());
         if (event.getExtraInfo() != null && event.getExtraInfo().containsKey("objectType") && event.getExtraInfo().containsKey("contentUrl")) {
+
             String objectType = (String) event.getExtraInfo().get("objectType");
             String newUrl = (String) event.getExtraInfo().get("contentUrl");
             logger.info("Object Type: ", objectType);
@@ -362,6 +375,7 @@ public class ServiceUtils {
             }
             data.put("type", event.getAction());
 
+
             payloadData.put("actor", event.getActor());
             payloadData.put("notificationType", null);
             payloadData.put("action", event.getAction());
@@ -421,6 +435,7 @@ public class ServiceUtils {
             if (!Objects.equals(event.getAction(), ProcessMessageEvent.MESSAGE_SENT)) {
                 processContentUrl(event);
                 YookoreNotificationItem notificationItem = getYookoreNotificationItem(event);
+
                 if (notificationItem != null) {
                     if (event.getRecipient().getUsername().equals("mercyrumbyrum")) {
                         logger.info("Saving item: {}", notificationItem.toString());

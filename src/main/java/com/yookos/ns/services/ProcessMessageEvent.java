@@ -66,16 +66,16 @@ public class ProcessMessageEvent {
         }
 
         if (action.equals(FRIEND_REQUEST) || action.equals(FRIEND_REQUEST_ACCEPTED)||action.equals(FRIEND)) {
-            RedisUser redisUser = serviceUtils.getRedisUser(event.getActor().getUsername());
-            Map<String, Object> info = new HashMap<>();
+//            RedisUser redisUser = serviceUtils.getRedisUser(event.getActor().getUsername());
+//            Map<String, Object> info = new HashMap<>();
+//
+//            if(redisUser != null){
+//                info.put("actorImgurl", redisUser.getAvatarurl());
+//            }
 
-            if(redisUser != null){
-                info.put("actorImgurl", redisUser.getAvatarurl());
-            }
 
 
-
-            event.setExtraInfo(info);
+//            event.setExtraInfo(info);
             if (event.getAction().equals(FRIEND))
                     event.setAction(FRIEND_REQUEST_ACCEPTED);
             log.info("Processing friend request messaging event: {}", event);
