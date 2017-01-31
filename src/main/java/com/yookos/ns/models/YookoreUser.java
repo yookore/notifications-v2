@@ -99,6 +99,7 @@ public class YookoreUser {
                 ", firstName='" + getFullNames() + '\'' +
                 ", lastName='" + lastName + '\'' +
                 ", preference=" + preference +
+                ", onMobile=" + onMobile +
                 '}';
     }
 }

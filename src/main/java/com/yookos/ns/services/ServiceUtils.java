@@ -194,8 +194,6 @@ public class ServiceUtils {
         if (recipient != null && actor != null) {
             NotificationUser user = notificationUserMapper.get(UUID.fromString(recipient.getUserId()));
             return user != null && user.getBlock_list() != null && user.getBlock_list().contains(UUID.fromString(actor.getUserId()));
-
-
         }
         return false;
     }
@@ -208,7 +206,6 @@ public class ServiceUtils {
             event.getExtraInfo().put("objectid", split[4]);
         }
     }
-
 
     private Preference getPreferencesForUser(String username) {
         Preference preference = new Preference();
@@ -307,7 +304,9 @@ public class ServiceUtils {
             try {
                 YookoreUser recipient = getRecipient(username);
 
+
                 if (recipient != null) {
+                    recipient.setOnMobile(relateduser.getBoolean("has_device"));
                     logger.info("Adding user: {}", username);
                     users.add(recipient);
                 }
@@ -348,6 +347,7 @@ public class ServiceUtils {
                 Preference preference = new Preference();
                 preference.setPush(true);
                 recipient.setPreference(preference);
+                recipient.setOnMobile(redisRecipient.isOnMobile());
 //                logger.info("Pulled user from redis: {}", redisRecipient);
 
             } else {
@@ -375,11 +375,22 @@ public class ServiceUtils {
             Preference preference = new Preference();
             preference.setPush(true);
             recipient.setPreference(preference);
+            recipient.setOnMobile(checkForDevice(username));
             String cachedUserKey = CACHE_PREFIX + CACHE_DOMAIN_PROFILE_PREFIX + username;
             jedisCluster.set(cachedUserKey, gson.toJson(recipient));
 //            logger.info("Pulled user from upm: {}", redisRecipient);
         }
         return recipient;
+    }
+
+    private boolean checkForDevice(String username) {
+        MongoCollection<Document> yookoreDb = client.getDatabase("yookore").getCollection("aes_relationships");
+        FindIterable<Document> users;
+        Document user = yookoreDb.find(new BasicDBObject("user", username)).first();
+        if (user != null && user.containsKey("has_device")){
+            return user.getBoolean("has_device");
+        }
+        return false;
     }
 
 
@@ -488,7 +499,10 @@ public class ServiceUtils {
                     mapper.save(notificationItem);
                 }
             }
-            sendToPushQueue(event);
+            if(event.getRecipient().isOnMobile()){
+                sendToPushQueue(event);
+            }
+
 
         } catch (Exception e) {
             e.printStackTrace();

@@ -11,6 +11,15 @@ public class RedisUser {
     private String fullname;
     private String avatarurl;
     private String email;
+    private boolean onMobile;
+
+    public boolean isOnMobile() {
+        return onMobile;
+    }
+
+    public void setOnMobile(boolean onMobile) {
+        this.onMobile = onMobile;
+    }
 
     public String getUserid() {
         return userid;
