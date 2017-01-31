@@ -37,7 +37,7 @@ public class NotificationReceiver implements ChannelAwareMessageListener {
         try {
             String msg = new String(message.getBody());
 
-            log.info("Message received >>>>>>>>>>>>>>>>>>>>>>>>>>>>> \n\n\n\n\n: {}", msg);
+            log.info("Message received >>>>>>>>>>>>>>>>>>>>>>>>>>>>> \n\n: {}", msg);
 
             JSONObject jsonObject = new JSONObject(msg);
             if (jsonObject.has("type")) {

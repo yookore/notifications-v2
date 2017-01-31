@@ -21,6 +21,7 @@ public class ProcessMessageEvent {
     public static final String VIDEO_NOTIFICATION = "VIDEO_NOTIFICATION";
     public static final String AUDIO_NOTIFICATION = "AUDIO_NOTIFICATION";
     public static final String BLOG_POST_CREATED = "BLOG_POST_CREATED";
+    public static final String POST_CREATED = "POST_CREATED";
     public static final String STATUS_UPDATE_CREATED = "STATUS_UPDATE_CREATED";
     public static final String PHOTO_CREATED = "PHOTO_CREATED";
     public static final String COMMENT_NOTIFICATION = "COMMENT_NOTIFICATION";
@@ -47,6 +48,7 @@ public class ProcessMessageEvent {
         if (action.equals(BLOG_POST_CREATED)
                 || action.equals(STATUS_UPDATE_CREATED)
                 || action.equals(PHOTO_CREATED)
+                || action.equals(POST_CREATED)
                 || action.equals(COMMENT_NOTIFICATION)
                 || action.equals(AUDIO_NOTIFICATION)
                 || action.equals(MESSAGE_SENT)

@@ -19,6 +19,16 @@ public class  YookoreNotificationItem {
     private String content;
     private String content_type;
     private String notification_type;
+    private String content_id;
+
+    public String getContent_id() {
+        return content_id;
+    }
+
+    public void setContent_id(String content_id) {
+        this.content_id = content_id;
+    }
+
     private boolean read = false;
 
     public UUID getTarget_user_id() {
@@ -84,6 +94,7 @@ public class  YookoreNotificationItem {
                 ", timesent=" + timesent +
                 ", notification_id=" + notification_id +
                 ", content='" + content + '\'' +
+                ", contentId='" + content_id + '\'' +
                 ", content_type='" + content_type + '\'' +
                 ", notification_type='" + notification_type + '\'' +
                 ", read=" + read +

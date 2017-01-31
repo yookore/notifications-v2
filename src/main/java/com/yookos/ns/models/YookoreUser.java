@@ -18,6 +18,15 @@ public class YookoreUser {
     private String firstName;
     private String lastName;
     private Preference preference;
+    private boolean onMobile;
+
+    public boolean isOnMobile() {
+        return onMobile;
+    }
+
+    public void setOnMobile(boolean onMobile) {
+        this.onMobile = onMobile;
+    }
 
     public String getType() {
         return type;

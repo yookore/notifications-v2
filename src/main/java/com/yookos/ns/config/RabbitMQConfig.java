@@ -45,6 +45,7 @@ public class RabbitMQConfig {
     String videoCreationQueue = "ns_video_creation_queue";
     String audioCreationQueue = "ns_audio_creation_queue";
     String commentCreationQueue = "ns_comment_creation_queue";
+    String newpostNotificationQueue = "ns_newpost_creation_queue";
 
     Logger log = LoggerFactory.getLogger(this.getClass());
 
@@ -151,7 +152,8 @@ public class RabbitMQConfig {
     SimpleMessageListenerContainer container(ConnectionFactory connectionFactory, NotificationReceiver receiver) {
         SimpleMessageListenerContainer container = new SimpleMessageListenerContainer();
         container.setConnectionFactory(connectionFactory);
-        container.setQueueNames(pclNotificationQueueName, notificationQueueName, friendRequestQueue, videoCreationQueue);
+        container.setQueueNames(pclNotificationQueueName, newpostNotificationQueue,
+                notificationQueueName, friendRequestQueue, videoCreationQueue);
         container.setMessageListener(receiver);
         return container;
 

@@ -34,7 +34,7 @@ import java.util.*;
 @Component
 public class ServiceUtils {
 
-    public static final String CACHE_PREFIX = "notificaitons_";
+    public static final String CACHE_PREFIX = "ns_";
     public static final String CACHE_DOMAIN_PROFILE_PREFIX = "profile_";
     public static final String UPM_URL = "http://upm.apps.yookosapps.com/api/v1/publish-profile/";
     public final String GROUP_INVITE = "GROUP_INVITE";
@@ -51,6 +51,8 @@ public class ServiceUtils {
     public final String FRIEND_REQUEST = "FRIEND_REQUEST";
     public final String FRIEND_REQUEST_ACCEPTED = "FRIEND_REQUEST_ACCEPTED";
     Logger logger = LoggerFactory.getLogger(this.getClass());
+    List<String> validRecipients;
+
     @Autowired
     JedisCluster jedisCluster;
 
@@ -85,6 +87,18 @@ public class ServiceUtils {
     }
 
     public void preparePushMessages(NotificationEvent event) {
+//        validRecipients = new ArrayList<>();
+//        validRecipients.add("jomski2009");
+//        validRecipients.add("phumi1");
+//        validRecipients.add("soluamusic");
+//        validRecipients.add("pimisi");
+//        validRecipients.add("mandla2010");
+//        validRecipients.add("sibusisomassangoLxJnBYwVn ");
+//        validRecipients.add("jamesmwalidk4r3XRYZ");
+//        validRecipients.add("borna2exl");
+//        validRecipients.add("marctang");
+//        validRecipients.add("mercyrumbyrum");
+//        validRecipients.add("mercyrum12");
 
         Preference preference = new Preference();
         preference.setPush(true);
@@ -121,8 +135,28 @@ public class ServiceUtils {
             saveAndPushToQueue(event);
         } else {
             getObjectId(event);
+
+//            if (event.getAction().equals(ProcessMessageEvent.POST_CREATED)) { // This is for testing newpost only. Remove later
+//                logger.info("Processing new post item");
+//                List<YookoreUser> relatedUsers = getRelatedUsers(event.getActor());
+//                for (YookoreUser recipient : relatedUsers) {
+//                    if (validRecipients.contains(recipient.getUsername())){
+//                        if (actorInBlockedList(recipient, event.getActor())) {
+//                            logger.info("{} has blocked {}", recipient.getUsername(), event.getActor().getUsername());
+//                        } else {
+//                            Preference prefs = getPreferencesForUser(recipient.getUsername());
+//                            recipient.setPreference(prefs);
+//                            event.setRecipient(recipient);
+//                            saveAndPushToQueue(event);
+//                        }
+//                    }else{
+//                        logger.info("SKIPPING NON YOOKOS DEV USER");
+//                    }
+//                }
+//            } else {
             List<YookoreUser> relatedUsers = getRelatedUsers(event.getActor());
             for (YookoreUser recipient : relatedUsers) {
+                logger.info("Recipient: {}", recipient.getUsername());
                 if (actorInBlockedList(recipient, event.getActor())) {
                     logger.info("{} has blocked {}", recipient.getUsername(), event.getActor().getUsername());
                 } else {
@@ -133,6 +167,8 @@ public class ServiceUtils {
                 }
 
             }
+
+//            }
         }
 
     }
@@ -157,8 +193,6 @@ public class ServiceUtils {
         logger.info("Checking for blocked list");
         if (recipient != null && actor != null) {
             NotificationUser user = notificationUserMapper.get(UUID.fromString(recipient.getUserId()));
-            logger.info("Notification User: {}", user);
-
             return user != null && user.getBlock_list() != null && user.getBlock_list().contains(UUID.fromString(actor.getUserId()));
 
 
@@ -191,45 +225,44 @@ public class ServiceUtils {
             String newUrl = (String) event.getExtraInfo().get("contentUrl");
             logger.info("Object Type: ", objectType);
             if (objectType.equals("blogpost") && newUrl.startsWith("/api")) {
-                newUrl = "blogpost.apps.yookosapps.com" + newUrl;
+                newUrl = "https://blogpost.yookos.com" + newUrl;
                 newUrl = newUrl.replace("/?from=aes", "");
                 event.getExtraInfo().put("contentUrl", newUrl);
             }
             if (objectType.equals("statusupdate") && newUrl.startsWith("/api")) {
-                newUrl = "statusupdate.apps.yookosapps.com" + newUrl;
+                newUrl = "https://statusupdate.yookos.com" + newUrl;
                 newUrl = newUrl.replace("/?from=aes", "");
                 event.getExtraInfo().put("contentUrl", newUrl);
             }
             if (objectType.equals("photo") && newUrl.startsWith("/api")) {
-                newUrl = "photos.apps.yookosapps.com" + newUrl;
+                newUrl = "https://photos.yookos.com" + newUrl;
                 newUrl = newUrl.replace("/?from=aes", "");
                 event.getExtraInfo().put("contentUrl", newUrl);
             }
 
             if (objectType.equals("video") && newUrl.startsWith("/api")) {
-                newUrl = "videos.apps.yookosapps.com" + newUrl;
+                newUrl = "https://videos.yookos.com" + newUrl;
                 newUrl = newUrl.replace("/?from=aes", "");
                 event.getExtraInfo().put("contentUrl", newUrl);
             }
             if (objectType.equals("share") && newUrl.startsWith("/api")) {
-                newUrl = "share.apps.yookosapps.com" + newUrl;
+                newUrl = "https://share.yookos.com" + newUrl;
                 newUrl = newUrl.replace("/?from=aes", "");
                 event.getExtraInfo().put("contentUrl", newUrl);
             }
 
             if (objectType.equals("post") && newUrl.startsWith("/api")) {
-                newUrl = "post.apps.yookosapps.com" + newUrl;
+                newUrl = "https://post.yookos.com" + newUrl;
                 newUrl = newUrl.replace("/?from=aes", "");
                 event.getExtraInfo().put("contentUrl", newUrl);
             }
 
             if (objectType.equals("audio") && newUrl.startsWith("/api")) {
-                newUrl = "audio.apps.yookosapps.com" + newUrl;
+                newUrl = "https://audio.yookos.com" + newUrl;
                 newUrl = newUrl.replace("/?from=aes", "");
                 event.getExtraInfo().put("contentUrl", newUrl);
             }
         }
-
     }
 
 
@@ -254,15 +287,13 @@ public class ServiceUtils {
 
         FindIterable<Document> relatedusers;
 
-        if(publicFigure && yookoreUser.getUsername().equalsIgnoreCase("pastorchrislive")){
+        if (publicFigure && yookoreUser.getUsername().equalsIgnoreCase("pastorchrislive")) {
 //            relatedusers = pclFollowersDb.find();
             relatedusers = yookoreDb.find(new BasicDBObject("relateduser", yookoreUser.getUsername()).append("has_device", true));
-        }
-        else
-        if (publicFigure) {
-            relatedusers = yookoreDb.find(new BasicDBObject("relateduser", yookoreUser.getUsername()).append("has_device", true));
+        } else if (publicFigure) {
+            relatedusers = yookoreDb.find(new BasicDBObject("relateduser", yookoreUser.getUsername()));
         } else {
-            relatedusers = yookoreDb.find(new BasicDBObject("relateduser", yookoreUser.getUsername()).append("has_device", true));
+            relatedusers = yookoreDb.find(new BasicDBObject("relateduser", yookoreUser.getUsername()));
         }
 
         for (Document relateduser : relatedusers) {
@@ -391,6 +422,22 @@ public class ServiceUtils {
             String dataString = gson.toJson(data);
             notificationItem.setContent(dataString);
 //            logger.info("Ready for saving: {}", notificationItem);
+            logger.info("Event Extra Info: {}", event.getExtraInfo().toString());
+            if (event.getExtraInfo().containsKey("objectId")) {
+                notificationItem.setContent_id(event.getExtraInfo().get("objectId").toString());
+            }
+
+            if (event.getExtraInfo().containsKey("objectid")) {
+                notificationItem.setContent_id(event.getExtraInfo().get("objectid").toString());
+            }
+
+            if (event.getExtraInfo().containsKey("parentContentUrl")){
+                String url = event.getExtraInfo().get("parentContentUrl").toString();
+                String[] parts = url.split("/");
+                String contentId = parts[parts.length -1];
+                logger.info("Parent ID: {}", contentId);
+                notificationItem.setContent_id(contentId);
+            }
 
             return notificationItem;
 
@@ -411,8 +458,7 @@ public class ServiceUtils {
     }
 
     private void saveAndPushToQueue(NotificationEvent event) {
-        logger.info("Test Event: {}", event );
-        if (event.getRecipient() == null && event.getTargetUsers().get(0) != null){
+        if (event.getRecipient() == null && event.getTargetUsers().get(0) != null) {
             YookoreUser r = new YookoreUser();
             TargetUser t = event.getTargetUsers().get(0);
             r.setUsername(t.getUsername());
@@ -437,13 +483,8 @@ public class ServiceUtils {
                 YookoreNotificationItem notificationItem = getYookoreNotificationItem(event);
 
                 if (notificationItem != null) {
-                    if (event.getRecipient().getUsername().equals("mercyrumbyrum")) {
-                        logger.info("Saving item: {}", notificationItem.toString());
-                    }
-
                     if (event.getAction().equalsIgnoreCase(FRIEND_REQUEST))
                         notificationItem.setRead(true);
-
                     mapper.save(notificationItem);
                 }
             }
@@ -470,6 +511,4 @@ public class ServiceUtils {
             logger.error(e.getMessage());
         }
     }
-
-
 }
