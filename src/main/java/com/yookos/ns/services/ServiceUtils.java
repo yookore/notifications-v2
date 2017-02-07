@@ -306,7 +306,11 @@ public class ServiceUtils {
 
 
                 if (recipient != null) {
-                    recipient.setOnMobile(relateduser.getBoolean("has_device"));
+                    if(relateduser.getBoolean("has_device") != null){
+                        recipient.setOnMobile(relateduser.getBoolean("has_device"));
+                    }else{
+                        recipient.setOnMobile(false);
+                    }
                     logger.info("Adding user: {}", username);
                     users.add(recipient);
                 }
@@ -464,6 +468,7 @@ public class ServiceUtils {
 
     private void sendToPushQueue(NotificationEvent event) {
         //TODO:
+        event.getExtraInfo().replace("objectid", event.getExtraInfo().get("objectId"));
         logger.info("Pushing message event:{}", event);
         rabbitTemplate.convertAndSend("myexchange", "myqueue", event);
     }
