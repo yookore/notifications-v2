@@ -83,22 +83,26 @@ public class ServiceUtils {
     public void prepareSinglePushMessage(NotificationEvent event) {
         //For friend request and friend acceptance
 //        logger.info("Processing friend request messaging event: {}", event);
+        if (event.getExtraInfo().containsKey("objectType") && event.getExtraInfo().get("objectType") == "post") {
+            String parts[] = event.getExtraInfo().get("contentUrl").toString().split("/");
+            for (String part : parts) {
+                logger.info("Parts>>>>>>>>>>>>>>: {}", part);
+            }
+        }
         saveAndPushToQueue(event);
     }
 
     public void preparePushMessages(NotificationEvent event) {
-//        validRecipients = new ArrayList<>();
-//        validRecipients.add("jomski2009");
-//        validRecipients.add("phumi1");
-//        validRecipients.add("soluamusic");
-//        validRecipients.add("pimisi");
-//        validRecipients.add("mandla2010");
-//        validRecipients.add("sibusisomassangoLxJnBYwVn ");
-//        validRecipients.add("jamesmwalidk4r3XRYZ");
-//        validRecipients.add("borna2exl");
-//        validRecipients.add("marctang");
-//        validRecipients.add("mercyrumbyrum");
-//        validRecipients.add("mercyrum12");
+
+        validRecipients = new ArrayList<>();
+        validRecipients.add("phumi1");
+        validRecipients.add("mercyrumbyrum");
+        validRecipients.add("jomski2009");
+        validRecipients.add("borna2exl");
+        validRecipients.add("soulamusic");
+        validRecipients.add("pimisi");
+        validRecipients.add("mercyrum12");
+        validRecipients.add("marctang");
 
         Preference preference = new Preference();
         preference.setPush(true);
@@ -106,8 +110,8 @@ public class ServiceUtils {
 
         if (event.getAction().equals(ProcessMessageEvent.COMMENT_NOTIFICATION)) {
             getObjectId(event);
-            //We are only sending to those in the target list of users
-//            logger.info("Processing comment or messaging notifications, {}", event.toString());''
+            // We are only sending to those in the target list of users
+            // logger.info("Processing comment or messaging notifications, {}", event.toString());''
 
             logger.info("Comments sections<<<<<<<<<<<<<<<<<");
             String parentObjectType = event.getTargetUsers().get(0).getObjectType();
@@ -119,6 +123,8 @@ public class ServiceUtils {
 
             event.getExtraInfo().put("parentContentUrl", parentContentUrl);
 
+            getParentObjectId(event);
+
             YookoreUser recipient = getRecipient(event.getTargetUsers().get(0).getUsername());
 
             Preference prefs = getPreferencesForUser(recipient.getUsername());
@@ -129,6 +135,23 @@ public class ServiceUtils {
             logger.info("Comments sections end <<<<<<<<<<<<<<<<<");
 
             saveAndPushToQueue(event);
+        } else if (event.getAction().equals(ProcessMessageEvent.PRAYER_LIKED)
+                || event.getAction().equals(ProcessMessageEvent.TESTIMONY_LIKED)) {
+            getObjectId(event);
+            String parentObjectType = event.getTargetUsers().get(0).getObjectType();
+            String parentContentUrl = event.getTargetUsers().get(0).getContentUrl();
+            event.getExtraInfo().put("parentObjectType", parentObjectType);
+            event.getExtraInfo().put("parentContentUrl", parentContentUrl);
+            event.getExtraInfo().put("parentObjectId", event.getExtraInfo().get("objectId"));
+
+            YookoreUser recipient = getRecipient(event.getTargetUsers().get(0).getUsername());
+            Preference prefs = getPreferencesForUser(recipient.getUsername());
+            recipient.setPreference(prefs);
+            event.setRecipient(recipient);
+
+            logger.info("Processing Prayer Liked Event: >>>>>>> {}", event.toString());
+            saveAndPushToQueue(event);
+
         } else if (event.getAction().equals(ProcessMessageEvent.MESSAGE_SENT)) {
             //We are not processing anything. Push as is...
             logger.info("Pushing message events");
@@ -136,38 +159,31 @@ public class ServiceUtils {
         } else {
             getObjectId(event);
 
-//            if (event.getAction().equals(ProcessMessageEvent.POST_CREATED)) { // This is for testing newpost only. Remove later
-//                logger.info("Processing new post item");
-//                List<YookoreUser> relatedUsers = getRelatedUsers(event.getActor());
-//                for (YookoreUser recipient : relatedUsers) {
-//                    if (validRecipients.contains(recipient.getUsername())){
-//                        if (actorInBlockedList(recipient, event.getActor())) {
-//                            logger.info("{} has blocked {}", recipient.getUsername(), event.getActor().getUsername());
-//                        } else {
-//                            Preference prefs = getPreferencesForUser(recipient.getUsername());
-//                            recipient.setPreference(prefs);
-//                            event.setRecipient(recipient);
-//                            saveAndPushToQueue(event);
-//                        }
-//                    }else{
-//                        logger.info("SKIPPING NON YOOKOS DEV USER");
-//                    }
-//                }
-//            } else {
             List<YookoreUser> relatedUsers = getRelatedUsers(event.getActor());
             for (YookoreUser recipient : relatedUsers) {
                 logger.info("Recipient: {}", recipient.getUsername());
                 if (actorInBlockedList(recipient, event.getActor())) {
                     logger.info("{} has blocked {}", recipient.getUsername(), event.getActor().getUsername());
                 } else {
-                    Preference prefs = getPreferencesForUser(recipient.getUsername());
-                    recipient.setPreference(prefs);
-                    event.setRecipient(recipient);
-                    saveAndPushToQueue(event);
+                    if (!event.getAction().equals(ProcessMessageEvent.PRAYER_EDITED)
+                            || !event.getAction().equals(ProcessMessageEvent.PRAYER_LIKED)
+                            || !event.getAction().equals(ProcessMessageEvent.TESTIMONY_LIKED)
+                            ) {
+                        Preference prefs = getPreferencesForUser(recipient.getUsername());
+                        recipient.setPreference(prefs);
+                        event.setRecipient(recipient);
+                        saveAndPushToQueue(event);
+                    }
+//                    } else {
+//                        if (validRecipients.contains(recipient.getUsername())) {
+//                            Preference prefs = getPreferencesForUser(recipient.getUsername());
+//                            recipient.setPreference(prefs);
+//                            event.setRecipient(recipient);
+//                            saveAndPushToQueue(event);
+//                        }
+//                    }
                 }
-
             }
-
 //            }
         }
 
@@ -202,8 +218,33 @@ public class ServiceUtils {
         if (event.getExtraInfo() != null && event.getExtraInfo().containsKey("contentUrl")) {
             String url = (String) event.getExtraInfo().get("contentUrl");
             String[] split = url.split("/");
-            logger.info("Object id: {}", split[4]);
-            event.getExtraInfo().put("objectid", split[4]);
+
+            if (event.getExtraInfo().get("objectType").toString().equals("post")) {
+                logger.info("Object id: {}", split[5]);
+                event.getExtraInfo().put("objectid", split[5]);
+            } else if (event.getExtraInfo().get("objectType").toString().equals("prayer")) {
+                logger.info("Object id: {}", split[3]);
+                event.getExtraInfo().put("objectid", split[3]);
+            } else {
+                logger.info("Object id: {}", split[4]);
+                event.getExtraInfo().put("objectid", split[4]);
+            }
+        }
+    }
+
+    private void getParentObjectId(NotificationEvent event) {
+        if (event.getExtraInfo() != null && event.getExtraInfo().containsKey("parentContentUrl")) {
+            String url = (String) event.getExtraInfo().get("parentContentUrl");
+            String[] split = url.split("/");
+
+            if (event.getExtraInfo().get("parentObjectType").toString().equals("post")) {
+                logger.info("Object id: {}", split[5]);
+                event.getExtraInfo().put("parentObjectId", split[5]);
+
+            } else {
+                logger.info("Object id: {}", split[4]);
+                event.getExtraInfo().put("parentObjectId", split[4]);
+            }
         }
     }
 
@@ -306,9 +347,9 @@ public class ServiceUtils {
 
 
                 if (recipient != null) {
-                    if(relateduser.getBoolean("has_device") != null){
+                    if (relateduser.getBoolean("has_device") != null) {
                         recipient.setOnMobile(relateduser.getBoolean("has_device"));
-                    }else{
+                    } else {
                         recipient.setOnMobile(false);
                     }
                     logger.info("Adding user: {}", username);
@@ -391,8 +432,12 @@ public class ServiceUtils {
         MongoCollection<Document> yookoreDb = client.getDatabase("yookore").getCollection("aes_relationships");
         FindIterable<Document> users;
         Document user = yookoreDb.find(new BasicDBObject("user", username)).first();
-        if (user != null && user.containsKey("has_device")){
-            return user.getBoolean("has_device");
+        logger.info("DOCUMENT retrieved: {}", user.toString());
+        if (user != null && user.containsKey("has_device")) {
+            if (user.get("has_device") != null){
+                return user.getBoolean("has_device");
+            }
+            return false;
         }
         return false;
     }
@@ -446,10 +491,10 @@ public class ServiceUtils {
                 notificationItem.setContent_id(event.getExtraInfo().get("objectid").toString());
             }
 
-            if (event.getExtraInfo().containsKey("parentContentUrl")){
+            if (event.getExtraInfo().containsKey("parentContentUrl")) {
                 String url = event.getExtraInfo().get("parentContentUrl").toString();
                 String[] parts = url.split("/");
-                String contentId = parts[parts.length -1];
+                String contentId = parts[parts.length - 1];
                 logger.info("Parent ID: {}", contentId);
                 notificationItem.setContent_id(contentId);
             }
@@ -467,8 +512,7 @@ public class ServiceUtils {
     }
 
     private void sendToPushQueue(NotificationEvent event) {
-        //TODO:
-        event.getExtraInfo().replace("objectid", event.getExtraInfo().get("objectId"));
+//        event.getExtraInfo().replace("objectid", event.getExtraInfo().get("objectId"));
         logger.info("Pushing message event:{}", event);
         rabbitTemplate.convertAndSend("myexchange", "myqueue", event);
     }
@@ -493,7 +537,6 @@ public class ServiceUtils {
         }
         try {
             //We will not be doing any processing on direct message events
-            logger.info("Test processing on events");
             if (!Objects.equals(event.getAction(), ProcessMessageEvent.MESSAGE_SENT)) {
                 processContentUrl(event);
                 YookoreNotificationItem notificationItem = getYookoreNotificationItem(event);
@@ -504,7 +547,7 @@ public class ServiceUtils {
                     mapper.save(notificationItem);
                 }
             }
-            if(event.getRecipient().isOnMobile()){
+            if (event.getRecipient().isOnMobile()) {
                 sendToPushQueue(event);
             }
 

@@ -24,6 +24,12 @@ public class ProcessMessageEvent {
     public static final String POST_CREATED = "POST_CREATED";
     public static final String STATUS_UPDATE_CREATED = "STATUS_UPDATE_CREATED";
     public static final String PHOTO_CREATED = "PHOTO_CREATED";
+    public static final String PRAYER_CREATED = "PRAYER_CREATED";
+    public static final String PRAYER_EDITED = "PRAYER_EDITED";
+    public static final String PRAYER_LIKED = "PRAYER_LIKED";
+    public static final String PRAYERREQUEST_TESTIFIED = "PRAYERREQUEST_TESTIFIED";
+    public static final String TESTIMONY_CREATED = "TESTIMONY_CREATED";
+    public static final String TESTIMONY_LIKED = "TESTIMONY_LIKED";
     public static final String COMMENT_NOTIFICATION = "COMMENT_NOTIFICATION";
     public static final String USER_VERIFICATION = "String USER_VERIFICATION";
     public static final String RESET_PASSWORD = "RESET_PASSWORD";
@@ -48,6 +54,11 @@ public class ProcessMessageEvent {
         if (action.equals(BLOG_POST_CREATED)
                 || action.equals(STATUS_UPDATE_CREATED)
                 || action.equals(PHOTO_CREATED)
+                || action.equals(PRAYER_CREATED)
+                || action.equals(PRAYER_LIKED)
+                || action.equals(PRAYER_EDITED)
+                || action.equals(PRAYERREQUEST_TESTIFIED)
+                || action.equals(TESTIMONY_CREATED)
                 || action.equals(POST_CREATED)
                 || action.equals(COMMENT_NOTIFICATION)
                 || action.equals(AUDIO_NOTIFICATION)
@@ -85,11 +96,8 @@ public class ProcessMessageEvent {
         }
     }
 
-
-
     public void processPclNotificationEvent(NotificationEvent event) {
         log.info("processing pcl event message: {}", event);
         serviceUtils.preparePushPCLMessages(event);
     }
-
 }

@@ -2,9 +2,9 @@
 applications:
   - name: nsproducer
     instances: 2
-    memory: 8G
+    memory: 4G
     no-route: true
     path: build/libs/ns.jar
-    buildpack: https://github.com/cloudfoundry/java-buildpack.git
+    buildpack: https://github.com/cloudfoundry/java-buildpack#v3.11
 
 
